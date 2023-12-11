@@ -4,6 +4,7 @@ import type {
   OutgoingHttpHeaders,
   ServerResponse,
 } from 'http'
+import { isMatch } from 'next/dist/compiled/micromatch'
 import type { WebNextRequest } from '../base-http/web'
 import type { SizeLimit } from '../../../types'
 import type { RequestStore } from '../../client/components/request-async-storage.external'
@@ -331,7 +332,13 @@ export async function handleAction({
     // If the customer sets a list of allowed origins, we'll allow the request.
     // These are considered safe but might be different from forwarded host set
     // by the infra (i.e. reverse proxies).
-    if (serverActions?.allowedOrigins?.includes(originDomain)) {
+    // We also allow the origin to be a wildcard, which is useful for dynamic environment.
+    if (
+      serverActions?.allowedOrigins?.some(
+        (allowedOrigin) =>
+          allowedOrigin === originDomain || isMatch(originDomain, allowedOrigin)
+      )
+    ) {
       // Ignore it
     } else {
       if (host) {
